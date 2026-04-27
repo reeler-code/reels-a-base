@@ -1,0 +1,39 @@
+name: Process Reels to Markdown
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      
+      - name: Install Python packages
+        run: |
+          pip install yt-dlp requests pyyaml
+      
+      - name: Run processor
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python process.py
+      
+      - name: Commit new markdown files
+        run: |
+          git config user.name "reel-bot"
+          git config user.email "bot@reels.library"
+          git add vault/
+          git diff --staged --quiet || git commit -m "Processed new reels"
+          git push
